@@ -1083,8 +1083,8 @@ body {
       <span class="status-badge ok">✅ Activa</span><span class="status-badge ok">✅ App oberta</span>
     </div>
     <div class="section-title">Contactes d'emergència</div>
-    <div class="med-edit-item"><div style="font-size:20px;">👨</div><div class="med-edit-info"><div class="med-edit-name">Joan (fill)</div><div class="med-edit-detail">+34 612 345 678</div></div><button class="edit-btn">✏️</button></div>
-    <div class="med-edit-item"><div style="font-size:20px;">👩</div><div class="med-edit-info"><div class="med-edit-name">Marta (neta)</div><div class="med-edit-detail">+34 698 765 432</div></div><button class="edit-btn">✏️</button></div>
+    <div id="emergencyContactList"></div>
+    <button onclick="openContactForm()" style="width:100%;padding:10px;border:1.5px dashed oklch(75% 0.012 80);border-radius:10px;background:none;font-size:13px;color:oklch(48% 0.098 195);cursor:pointer;font-family:var(--font-body);font-weight:600;margin-bottom:4px;">+ Afegir contacte</button>
     <div class="section-title">Notificacions</div>
     <div class="config-row"><div><div class="config-label">Alerta d'emergència</div><div class="config-sub">WhatsApp + trucada</div></div><div class="toggle" onclick="this.classList.toggle('off')"></div></div>
     <div class="config-row"><div><div class="config-label">Resum diari</div><div class="config-sub">Cada vespre a les 20h</div></div><div class="toggle" onclick="this.classList.toggle('off')"></div></div>
@@ -1094,6 +1094,31 @@ body {
         Restablir i tancar sessió
       </button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL FORMULARI CONTACTE EMERGÈNCIA -->
+<div id="contactFormModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('contactFormModal')">✕</button>
+    <h2 id="contactFormTitle">Nou contacte</h2>
+    <input type="hidden" id="cf-idx" value="-1">
+    <div class="ob-field"><label class="ob-label">Icona</label>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:4px;" id="cf-icon-chips">
+        <div class="ob-chip" onclick="selectContactIcon(this,'👨')" data-val="👨">👨</div>
+        <div class="ob-chip" onclick="selectContactIcon(this,'👩')" data-val="👩">👩</div>
+        <div class="ob-chip" onclick="selectContactIcon(this,'👧')" data-val="👧">👧</div>
+        <div class="ob-chip" onclick="selectContactIcon(this,'👦')" data-val="👦">👦</div>
+        <div class="ob-chip" onclick="selectContactIcon(this,'👴')" data-val="👴">👴</div>
+        <div class="ob-chip" onclick="selectContactIcon(this,'👵')" data-val="👵">👵</div>
+        <div class="ob-chip" onclick="selectContactIcon(this,'🧑‍⚕️')" data-val="🧑‍⚕️">🧑‍⚕️</div>
+        <div class="ob-chip" onclick="selectContactIcon(this,'👫')" data-val="👫">👫</div>
+      </div>
+    </div>
+    <div class="ob-field"><label class="ob-label">Nom i relació</label><input class="ob-input" id="cf-nom" type="text" placeholder="Joan (fill), Marta (veïna)..."></div>
+    <div class="ob-field"><label class="ob-label">Telèfon</label><input class="ob-input" id="cf-tel" type="tel" inputmode="tel" placeholder="+34 612 345 678"></div>
+    <button class="action-btn" onclick="saveContact()">Guardar contacte</button>
   </div>
 </div>
 
@@ -1317,11 +1342,11 @@ body {
   function init(){applyLang();if(userData&&userData.onboardingDone){applyUserData();showView('elderView');checkReminders();startReminderCycle();setTimeout(()=>{if(typeof gsap!=='undefined')gsap.fromTo('#langSwitcher',{opacity:0,scale:0.82},{opacity:1,scale:1,duration:0.38,ease:'back.out(1.5)',delay:0.25});},80);}else{showView('onboardingView');if(localStorage.getItem('nona_lang')){document.getElementById('ob-lang').classList.remove('active');document.getElementById('ob0').classList.add('active');}}}
   function updateTime(){const now=new Date();const L=T[currentLang];const el=document.getElementById('headerTime');if(el)el.textContent=L.days[now.getDay()]+' '+now.getDate()+' '+L.months[now.getMonth()]+' · '+now.toLocaleTimeString(currentLang,{hour:'2-digit',minute:'2-digit'});}
   updateTime();setInterval(updateTime,30000);
-  function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);if(id==='elderView'&&typeof gsap!=='undefined'){gsap.fromTo('#elderView .big-btn',{y:20,opacity:0,scale:0.97},{y:0,opacity:1,scale:1,duration:0.38,ease:'power3.out',stagger:0.05,delay:0.03});gsap.fromTo('.header-inner',{y:-6,opacity:0},{y:0,opacity:1,duration:0.28,ease:'power2.out'});}if(id==='familyView'&&typeof gsap!=='undefined'){gsap.fromTo('#familyView .med-edit-item,#familyView .config-row',{y:14,opacity:0},{y:0,opacity:1,duration:0.28,ease:'power2.out',stagger:0.04,delay:0.04});}}
+  function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);if(id==='elderView'&&typeof gsap!=='undefined'){gsap.fromTo('#elderView .big-btn',{y:20,opacity:0,scale:0.97},{y:0,opacity:1,scale:1,duration:0.38,ease:'power3.out',stagger:0.05,delay:0.03});gsap.fromTo('.header-inner',{y:-6,opacity:0},{y:0,opacity:1,duration:0.28,ease:'power2.out'});}if(id==='familyView'){renderContactList();if(typeof gsap!=='undefined')gsap.fromTo('#familyView .med-edit-item,#familyView .config-row',{y:14,opacity:0},{y:0,opacity:1,duration:0.28,ease:'power2.out',stagger:0.04,delay:0.04});}}
   function openModal(id){const overlay=document.getElementById(id);overlay.classList.add('open');const modal=overlay.querySelector('.modal');if(typeof gsap!=='undefined')gsap.fromTo(modal,{y:'100%',opacity:0},{y:'0%',opacity:1,duration:0.32,ease:'power3.out'});else{modal.style.transform='translateY(0)';modal.style.opacity='1';}}
   function closeModal(id){const overlay=document.getElementById(id);const modal=overlay.querySelector('.modal');if(typeof gsap!=='undefined')gsap.to(modal,{y:'100%',opacity:0,duration:0.22,ease:'power2.in',onComplete:()=>overlay.classList.remove('open')});else overlay.classList.remove('open');}
   document.querySelectorAll('.modal-overlay').forEach(overlay=>{overlay.addEventListener('click',function(e){if(e.target===this)closeModal(this.id);});});
-  function openEmergency(){openModal('emergencyModal');}
+  function openEmergency(){renderEmergencyModal();openModal('emergencyModal');}
   function openMedicines(){renderMedList();openModal('medicinesModal');}
   function openLocation(){openModal('locationModal');const addrEl=document.getElementById('locationAddr');const coordsEl=document.getElementById('locationCoords');addrEl.textContent=t('loc_searching');coordsEl.textContent='';if(!navigator.geolocation){addrEl.textContent='⚠️ GPS no disponible.';return;}setTimeout(()=>{navigator.geolocation.getCurrentPosition(pos=>{const lat=pos.coords.latitude;const lng=pos.coords.longitude;coordsEl.textContent=lat.toFixed(5)+', '+lng.toFixed(5);addrEl.textContent=t('loc_getting');fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&accept-language=ca',{headers:{'User-Agent':'Nona/2.1'}}).then(r=>r.json()).then(d=>{const a=d.address||{};const str=[a.road,a.house_number,a.postcode,a.city||a.town||a.village||a.municipality].filter(Boolean).join(', ');addrEl.textContent=str||d.display_name||lat.toFixed(4)+', '+lng.toFixed(4);}).catch(()=>{addrEl.textContent='📍 '+lat.toFixed(4)+', '+lng.toFixed(4);});},(err)=>{addrEl.textContent=err.code===1?t('loc_denied'):t('loc_error');coordsEl.textContent='';},{enableHighAccuracy:true,timeout:15000,maximumAge:30000});},300);}
   function shareLocation(){const btn=document.getElementById('shareLocationBtn');btn.textContent=t('loc_shared');btn.style.background='#2d8653';setTimeout(()=>{btn.textContent=t('loc_share');btn.style.background='';},3000);}
@@ -1329,6 +1354,59 @@ body {
   function simulateCall(name){closeModal('emergencyModal');alert('Trucant a '+name+'...');}
   function sendEmergencyAlert(){closeModal('emergencyModal');document.getElementById('sendingOverlay').classList.add('open');setTimeout(()=>document.getElementById('sendingOverlay').classList.remove('open'),4000);}
   function closeSending(){document.getElementById('sendingOverlay').classList.remove('open');}
+  // ── CONTACTES EMERGÈNCIA ──
+  let selectedContactIcon='👨';
+  function getContacts(){return JSON.parse(localStorage.getItem('nona_contacts')||'[]');}
+  function saveContacts(list){localStorage.setItem('nona_contacts',JSON.stringify(list));}
+  function renderContactList(){
+    const contacts=getContacts();
+    const el=document.getElementById('emergencyContactList');
+    if(!el)return;
+    if(!contacts.length){el.innerHTML='<div style="text-align:center;padding:14px 0;color:oklch(62% 0.010 240);font-size:13px;margin-bottom:8px;">Cap contacte afegit encara.</div>';return;}
+    el.innerHTML=contacts.map((c,i)=>'<div class="med-edit-item">'
+      +'<div style="font-size:20px;">'+c.icon+'</div>'
+      +'<div class="med-edit-info"><div class="med-edit-name">'+c.nom+'</div><div class="med-edit-detail">'+c.tel+'</div></div>'
+      +'<a href="tel:'+c.tel+'" style="background:oklch(91% 0.025 155);border:none;border-radius:8px;padding:6px 10px;font-size:15px;cursor:pointer;text-decoration:none;">📞</a>'
+      +'<button onclick="openContactForm('+i+')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:4px;">✏️</button>'
+      +'<button onclick="deleteContact('+i+')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:4px;">🗑️</button>'
+      +'</div>').join('');
+  }
+  function openContactForm(idx){
+    const contacts=getContacts();
+    document.getElementById('cf-idx').value=idx===undefined?-1:idx;
+    document.getElementById('contactFormTitle').textContent=idx===undefined?'Nou contacte':'Editar contacte';
+    if(idx!==undefined&&contacts[idx]){
+      const c=contacts[idx];
+      document.getElementById('cf-nom').value=c.nom||'';
+      document.getElementById('cf-tel').value=c.tel||'';
+      selectedContactIcon=c.icon||'👨';
+    }else{
+      document.getElementById('cf-nom').value='';
+      document.getElementById('cf-tel').value='';
+      selectedContactIcon='👨';
+    }
+    document.querySelectorAll('#cf-icon-chips .ob-chip').forEach(c=>{c.classList.toggle('selected',c.dataset.val===selectedContactIcon);});
+    openModal('contactFormModal');
+  }
+  function selectContactIcon(el,val){selectedContactIcon=val;document.querySelectorAll('#cf-icon-chips .ob-chip').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');}
+  function saveContact(){
+    const nom=document.getElementById('cf-nom').value.trim();
+    const tel=document.getElementById('cf-tel').value.trim();
+    if(!nom||!tel)return;
+    const contacts=getContacts();
+    const idx=parseInt(document.getElementById('cf-idx').value);
+    const contact={icon:selectedContactIcon,nom,tel};
+    if(idx>=0)contacts[idx]=contact;else contacts.push(contact);
+    saveContacts(contacts);closeModal('contactFormModal');renderContactList();renderEmergencyModal();
+  }
+  function deleteContact(idx){if(confirm('Eliminar aquest contacte?')){const contacts=getContacts();contacts.splice(idx,1);saveContacts(contacts);renderContactList();renderEmergencyModal();}}
+  function renderEmergencyModal(){
+    const contacts=getContacts();
+    const list=document.querySelector('#emergencyModal .contact-list');
+    if(!list)return;
+    if(!contacts.length){list.innerHTML='<li style="text-align:center;padding:14px;color:oklch(62% 0.010 240);font-size:13px;">Afegeix contactes des del panell Família.</li>';return;}
+    list.innerHTML=contacts.map(c=>{const ini=c.nom.charAt(0).toUpperCase();return'<li class="contact-item"><div class="contact-avatar">'+ini+'</div><div><div class="contact-name">'+c.nom+'</div><div class="contact-rel">'+c.tel+'</div></div><button class="call-btn" onclick="simulateCall(\''+c.nom.replace(/'/g,"\\'")+'\')" >📞</button></li>';}).join('');
+  }
   // ── MEDICINES ──
   const MED_MOMENT_ICON={mati:'🌅',migdia:'☀️',tarda:'🌤️',nit:'🌙'};
   const MED_MOMENT_LABEL={ca:{mati:'Matí',migdia:'Migdia',tarda:'Tarda',nit:'Nit'},es:{mati:'Mañana',migdia:'Mediodía',tarda:'Tarde',nit:'Noche'},en:{mati:'Morning',migdia:'Midday',tarda:'Afternoon',nit:'Night'}};
