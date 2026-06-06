@@ -1,7 +1,7 @@
 {
-  "name": "Nona",
-  "short_name": "Nona",
-  "description": "La teva assistent digital de confiança · Tu asistente digital de confianza · Your trusted digital assistant",
+  "name": "Alma",
+  "short_name": "Alma",
+  "description": "La teva companya de confiança · Tu compañera de confianza · Your trusted companion",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a73e8",
