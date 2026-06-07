@@ -1106,6 +1106,18 @@ body {
     <div class="section-title">Contactes d'emergència</div>
     <div id="emergencyContactList"></div>
     <button onclick="openContactForm()" style="width:100%;padding:10px;border:1.5px dashed oklch(75% 0.012 80);border-radius:10px;background:none;font-size:13px;color:oklch(48% 0.098 195);cursor:pointer;font-family:var(--font-body);font-weight:600;margin-bottom:4px;">+ Afegir contacte</button>
+    <div class="section-title">Família vinculada</div>
+    <div style="background:oklch(93% 0.018 195);border-radius:10px;padding:14px;margin-bottom:4px;">
+      <div style="font-size:13px;color:oklch(28% 0.072 240);margin-bottom:10px;line-height:1.5;">Comparteix el teu codi amb un familiar. Ell podrà veure el teu estat i rebre avisos si prems emergència.</div>
+      <button onclick="showFamilyCode()" style="width:100%;padding:12px;background:oklch(58% 0.088 195);color:white;border:none;border-radius:9px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font-body);">🔗 Generar codi de família</button>
+      <div id="family-code-box" style="display:none;margin-top:12px;text-align:center;">
+        <div style="font-size:12px;color:oklch(40% 0.012 240);margin-bottom:4px;">El teu codi és:</div>
+        <div id="family-code-display" style="font-size:36px;font-weight:700;letter-spacing:6px;color:oklch(26% 0.072 240);font-family:var(--font-mono);background:white;border-radius:8px;padding:10px;margin-bottom:10px;"></div>
+        <div style="font-size:11px;color:oklch(40% 0.012 240);margin-bottom:6px;">Envia aquest enllaç al teu familiar:</div>
+        <div id="family-link" style="font-size:11px;color:oklch(48% 0.098 195);word-break:break-all;background:white;border-radius:6px;padding:8px;"></div>
+        <button onclick="navigator.share ? navigator.share({title:'Alma — Codi família', text: 'Accedeix al meu estat a Alma:', url: document.getElementById(\'family-link\').textContent}) : navigator.clipboard.writeText(document.getElementById(\'family-link\').textContent).then(()=>alert('Copiat!'))" style="margin-top:8px;width:100%;padding:10px;background:white;border:1.5px solid oklch(58% 0.088 195);border-radius:8px;color:oklch(48% 0.098 195);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-body);">📤 Compartir enllaç</button>
+      </div>
+    </div>
     <div class="section-title">Transport</div>
     <div style="background:oklch(95.5% 0.012 87);border-radius:10px;padding:14px;margin-bottom:4px;">
       <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:oklch(26% 0.072 240);">Telèfon de taxi habitual</div>
@@ -1527,7 +1539,7 @@ body {
   function shareLocation(){const btn=document.getElementById('shareLocationBtn');btn.textContent=t('loc_shared');btn.style.background='#2d8653';setTimeout(()=>{btn.textContent=t('loc_share');btn.style.background='';},3000);}
   function openMaps(){if(navigator.geolocation)navigator.geolocation.getCurrentPosition(pos=>window.open('https://maps.google.com?q='+pos.coords.latitude+','+pos.coords.longitude,'_blank'));}
   function simulateCall(name){closeModal('emergencyModal');alert('Trucant a '+name+'...');}
-  function sendEmergencyAlert(){closeModal('emergencyModal');document.getElementById('sendingOverlay').classList.add('open');setTimeout(()=>document.getElementById('sendingOverlay').classList.remove('open'),4000);}
+  function sendEmergencyAlert(){closeModal('emergencyModal');document.getElementById('sendingOverlay').classList.add('open');setTimeout(()=>document.getElementById('sendingOverlay').classList.remove('open'),4000);if(typeof window.almaPublishEmergency==='function')window.almaPublishEmergency();}
   function closeSending(){document.getElementById('sendingOverlay').classList.remove('open');}
   // ── CONTACTES EMERGÈNCIA ──
   let selectedContactIcon='👨';
@@ -1755,6 +1767,97 @@ body {
   function toggleVoice(){const btn=document.getElementById('voiceBtn');const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert(t('voice_error'));return;}if(isRecording){recognition.stop();return;}recognition=new SR();recognition.lang=t('speech_lang');recognition.continuous=false;recognition.interimResults=false;recognition.onstart=()=>{isRecording=true;btn.textContent='⏹️';btn.classList.add('recording');};recognition.onresult=e=>{document.getElementById('chatInput').value=e.results[0][0].transcript;sendChat();};recognition.onend=()=>{isRecording=false;btn.textContent='🎤';btn.classList.remove('recording');};recognition.onerror=()=>{isRecording=false;btn.textContent='🎤';btn.classList.remove('recording');};recognition.start();}
   init();
   if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
+
+<!-- FIREBASE (module) -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getDatabase, ref, set, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+  const FB_CONFIG = {
+    apiKey: "AIzaSyB6aWIytAzyWbnhRiqF_6JrJzzydvlBn8s",
+    authDomain: "alma-app-exitus.firebaseapp.com",
+    databaseURL: "https://alma-app-exitus-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "alma-app-exitus",
+    storageBucket: "alma-app-exitus.firebasestorage.app",
+    messagingSenderId: "412330687576",
+    appId: "1:412330687576:web:72330338ea163e67a15e2d"
+  };
+  const fbApp = initializeApp(FB_CONFIG);
+  const db = getDatabase(fbApp);
+
+  // Genera codi de família únic de 6 caràcters
+  function generateFamilyCode(){
+    const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code='';for(let i=0;i<6;i++)code+=chars[Math.floor(Math.random()*chars.length)];
+    return code;
+  }
+
+  // Obté o crea el codi de família de l'usuari
+  function getFamilyCode(){
+    if(!userData)return null;
+    if(!userData.familyCode){userData.familyCode=generateFamilyCode();saveUser();}
+    return userData.familyCode;
+  }
+
+  // Publica les dades bàsiques a Firebase (sense dades mèdiques sensibles)
+  function publishToFirebase(emergency=false){
+    const code=getFamilyCode();
+    if(!code)return;
+    const alias=userData?.alias||userData?.nom||'';
+    const payload={
+      nom:alias,
+      ultimaActivitat: Date.now(),
+      emergencia: emergency,
+      emergenciaMissatge: emergency ? (new Date().toLocaleTimeString())+' — Ha premut el botó d\'emergència' : null
+    };
+    navigator.geolocation?.getCurrentPosition(pos=>{
+      payload.lat=pos.coords.latitude;
+      payload.lng=pos.coords.longitude;
+      set(ref(db,'familia/'+code),payload);
+    },()=>{
+      set(ref(db,'familia/'+code),payload);
+    });
+  }
+
+  // Exposa funció d'emergència al scope global
+  window.almaPublishEmergency = () => publishToFirebase(true);
+
+  // Activa publicació periòdica (cada 5 min)
+  function startFamilySync(){
+    if(!userData?.familyCode)return;
+    publishToFirebase(false);
+    setInterval(()=>publishToFirebase(false), 5*60*1000);
+  }
+
+  // Arrenca sincronització si ja té codi
+  const _ud = JSON.parse(localStorage.getItem('nona_user')||'null');
+  if(_ud?.familyCode) {
+    // patch userData reference
+    window.addEventListener('load', ()=>{ if(typeof startFamilySync==='function') startFamilySync(); });
+  }
+
+  // Mostra el codi de família a Espai personal
+  window.showFamilyCode = function(){
+    const ud = JSON.parse(localStorage.getItem('nona_user')||'null');
+    if(!ud) return;
+    if(!ud.familyCode){
+      const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code=''; for(let i=0;i<6;i++) code+=chars[Math.floor(Math.random()*chars.length)];
+      ud.familyCode = code;
+      localStorage.setItem('nona_user', JSON.stringify(ud));
+    }
+    const box = document.getElementById('family-code-box');
+    const code = document.getElementById('family-code-display');
+    if(box) box.style.display='block';
+    if(code) code.textContent = ud.familyCode;
+    // Publica a Firebase
+    publishToFirebase(false);
+    startFamilySync();
+    // Mostra URL per compartir
+    const link = document.getElementById('family-link');
+    if(link) link.textContent = window.location.origin + '?familia=' + ud.familyCode;
+  };
 </script>
 </body>
 </html>
